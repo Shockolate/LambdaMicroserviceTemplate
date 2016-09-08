@@ -14,7 +14,7 @@ STDERR.sync = true
 PWD = File.dirname(__FILE__)
 SRC_DIR = File.join(PWD, 'src')
 PACKAGE_DIR = File.join(PWD, 'package')
-DOC_DIR = File.join(PWD, 'doc')
+CONFIG_DIR = File.join(PWD, 'config')
 
 CLEAN.include(PACKAGE_DIR)
 CLEAN.include(File.join(PWD, 'reports'))
@@ -172,13 +172,13 @@ end
 
 def publish_lambda_package_to_s3()
   lm = LambdaWrap::LambdaManager.new()
-  return lm.publish_lambda_to_s3(File.join(PACKAGE_DIR, CONFIGURATION["zip_filename"]), CONFIGURATION["lambda_s3_bucket"], CONFIGURATION["lambda_s3_key"])
+  return lm.publish_lambda_to_s3(File.join(PACKAGE_DIR, CONFIGURATION["deployment_package_name"]), CONFIGURATION["s3"]["lambda"]["bucket"], CONFIGURATION["s3"]["lambda"]["key"])
 end
 
 def deploy_lambda(s3_version_id, function_name, handler_name, lambda_description)
 
   lambdaMgr = LambdaWrap::LambdaManager.new()
-  func_version = lambdaMgr.deploy_lambda(CONFIGURATION["lambda_s3_bucket"], CONFIGURATION["lambda_s3_key"], s3_version_id, function_name, handler_name, CONFIGURATION["lambda_role_arn"], lambda_description, CONFIGURATION["subnet_ids"], CONFIGURATION["security_groups"])
+  func_version = lambdaMgr.deploy_lambda(CONFIGURATION["s3"]["lambda"]["bucket"], CONFIGURATION["s3"]["lambda"]["key"], s3_version_id, function_name, handler_name, CONFIGURATION["lambda_role_arn"], lambda_description, CONFIGURATION["subnet_ids"], CONFIGURATION["security_groups"])
   puts "Deployed #{function_name} to function version #{func_version}."
   return func_version
 
@@ -195,7 +195,7 @@ def setup_apigateway(env, api_name, stage_variables)
   t1 = Time.now
   swagger_file = File.join(DOC_DIR, 'swagger.yaml')
   mgr = LambdaWrap::ApiGatewayManager.new()
-  mgr.download_apigateway_importer(CONFIGURATION["lambda_s3_bucket"], 'tools/aws-apigateway-importer-1.0.3-SNAPSHOT-jar-with-dependencies.jar')
+  mgr.download_apigateway_importer(CONFIGURATION["s3"]["importer"]["bucket"], CONFIGURATION["s3"]["importer"]["key"])
   uri = mgr.setup_apigateway(api_name, env, swagger_file, 'API: ' + api_name + ' to stage:' + env, stage_variables)
   t2 = Time.now
   puts "API gateway with api name set to #{api_name} and environment #{env} is available at #{uri}"
@@ -212,8 +212,8 @@ def upload_swagger_file()
   cleaned_swagger = clean_swagger(YAML::load_file(File.join(DOC_DIR, 'swagger.yaml')))
   puts "uploading Swagger File..."
   s3 = Aws::S3::Client.new()
-  s3.put_object(acl: 'public-read', body: cleaned_swagger, bucket: CONFIGURATION['swagger_spec_s3_bucket'],
-    key: CONFIGURATION['swagger_spec_s3_key'])
+  s3.put_object(acl: 'public-read', body: cleaned_swagger, bucket: CONFIGURATION["s3"]["swagger"]["bucket"],
+    key: CONFIGURATION["s3"]["swagger"]["key"])
   puts "Swagger File uploaded."
 end
 
@@ -222,16 +222,16 @@ def package()
   t1 = Time.now
   js_files_in_src = File.join(SRC_DIR, '*.js')
   input_filenames = Dir.glob(js_files_in_src)
-  LambdaWrap::LambdaManager.new().package(PACKAGE_DIR, File.join(PACKAGE_DIR, CONFIGURATION["zip_filename"]), input_filenames, NODE_MODULES)
+  LambdaWrap::LambdaManager.new().package(PACKAGE_DIR, File.join(PACKAGE_DIR, CONFIGURATION["deployment_package_name"]), input_filenames, NODE_MODULES)
   t2 = Time.now
   puts 'Zipped source files. ' + (t2-t1).to_s
   puts 'Downloading secrets zip....'
   t1 = Time.now
   s3 = Aws::S3::Client.new()
   s3.get_object(
-    response_target: PACKAGE_DIR + '/' + CONFIGURATION["secrets_s3_key"],
-    bucket: CONFIGURATION["secrets_s3_bucket"],
-    key: CONFIGURATION["secrets_s3_key"],
+    response_target: PACKAGE_DIR + '/' + CONFIGURATION["s3"]["secrets"]["key"],
+    bucket: CONFIGURATION["s3"]["secrets"]["bucket"],
+    key: CONFIGURATION["s3"]["secrets"]["key"],
   )
   t2 = Time.now
   puts 'Secrets downloaded. ' + (t2-t1).to_s
@@ -240,7 +240,7 @@ def package()
   puts 'Extracting Secrets...'
 
   t1 = Time.now
-  Zip::File.open(PACKAGE_DIR + '/' + CONFIGURATION["secrets_s3_key"]) do |secrets_zip_file|
+  Zip::File.open(PACKAGE_DIR + '/' + CONFIGURATION["s3"]["secrets"]["key"]) do |secrets_zip_file|
     secrets_zip_file.each do |entry|
       secrets_entries.push(entry.name)
       entry.extract(PACKAGE_DIR + '/' + entry.name)
@@ -251,7 +251,7 @@ def package()
 
   puts 'Adding secrets to package...'
   t1 = Time.now
-  Zip::File.open(File.join(PACKAGE_DIR, CONFIGURATION["zip_filename"]), Zip::File::CREATE) do |zipfile|
+  Zip::File.open(File.join(PACKAGE_DIR, CONFIGURATION["deployment_package_name"]), Zip::File::CREATE) do |zipfile|
     secrets_entries.each do |entry|
       zipfile.add(entry, PACKAGE_DIR + '/' + entry)
     end
