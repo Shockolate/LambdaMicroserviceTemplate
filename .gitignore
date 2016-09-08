@@ -1,0 +1,6 @@
+node_modules/
+package/
+reports/
+xunit.xml
+*.pyc
+npm-debug.log

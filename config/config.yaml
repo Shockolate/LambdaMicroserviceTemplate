@@ -1,0 +1,26 @@
+deployment_package_name: 'fulfilleditemservice.zip'
+lambda_role_arn: 'arn:aws:iam::971193568016:role/lambda_with_S3_Dynamo_VPC_ForCimpressShopfloor'
+s3:
+  lambda:
+    bucket: 'cimpress-msw-shopfloor-artifacts'
+    key: 'lambda/fulfilleditemservice/fulfilleditemservice.zip'
+  secrets:
+    bucket: 'cimpress-msw-shopfloor-secrets'
+    key: 'fis_secrets.zip'
+  swagger
+    bucket: 'cimpress-msw-shopfloor-artifacts'
+    key: 'lambda/fulfilleditemservice/swagger.yaml'
+subnet_ids:
+  - 'subnet-fa98c1bc'
+  - 'subnet-c09f8da2'
+  - 'subnet-daefd0ae'
+security_groups:
+  - 'sg-b3455cd1'
+functions:
+  - name: 'FunctionOne'
+    handler: 'function_one.handler'
+    description: "Function One Description"
+
+  - name: 'FunctionTwo'
+    handler: 'function_two.handler'
+    description: "Function Two Description"
