@@ -2,4 +2,15 @@ swagger: "2.0"
 info:
   version: "1.0"
   title: "Lambda Microservice Template"
+basePath: "/v1"
 paths:
+  /swagger:
+    get:
+      produces:
+        - 'text/html'
+      responses:
+        200:
+          description: 'Successful Response'
+          headers:
+            Content-Type:
+              type: 'string'
