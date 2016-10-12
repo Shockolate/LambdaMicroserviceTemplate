@@ -7,3 +7,13 @@ rules:
   consistent-return: off
   strict: off
   no-console: off
+  new-cap:
+    - Error
+    - capIsNewExceptions:
+      - VarChar
+  import/no-extraneous-dependencies:
+  - error
+  - devDependencies:
+    - "**/test/**/*.*"
+    optionalDependencies:
+    - "**/*.*"
