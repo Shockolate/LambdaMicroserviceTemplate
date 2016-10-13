@@ -23,7 +23,11 @@ functions:
   - name: 'FunctionOne'
     handler: 'function_one.handler'
     description: "Function One Description"
+    timeout: 30
+    memory_size: 512
 
   - name: 'FunctionTwo'
     handler: 'function_two.handler'
     description: "Function Two Description"
+    timeout: 5
+    memory_size: 128
