@@ -41,7 +41,7 @@ task :deploy_to_lambda, [:environment] => [:parse_config] do |t, args|
   puts 'Deploying Lambda Functions...'
   t1 = Time.now
   CONFIGURATION["functions"].each do |f|
-    func_version = deploy_lambda(s3_version_id, f["name"], f["handler"], f["description"])
+    func_version = deploy_lambda(s3_version_id, f["name"], f["handler"], f["description"], f["timeout"], f["memory_size"])
     promote_lambda(f["name"], func_version, env)
   end
   t2 = Time.now
@@ -175,11 +175,13 @@ def publish_lambda_package_to_s3()
   return lm.publish_lambda_to_s3(File.join(PACKAGE_DIR, CONFIGURATION["deployment_package_name"]), CONFIGURATION["s3"]["lambda"]["bucket"], CONFIGURATION["s3"]["lambda"]["key"])
 end
 
-def deploy_lambda(s3_version_id, function_name, handler_name, lambda_description)
+def deploy_lambda(s3_version_id, function_name, handler_name, lambda_description, timeout, memory_size)
 
   lambdaMgr = LambdaWrap::LambdaManager.new()
-  func_version = lambdaMgr.deploy_lambda(CONFIGURATION["s3"]["lambda"]["bucket"], CONFIGURATION["s3"]["lambda"]["key"], s3_version_id, function_name, handler_name, CONFIGURATION["lambda_role_arn"], lambda_description, CONFIGURATION["subnet_ids"], CONFIGURATION["security_groups"])
-  puts "Deployed #{function_name} to function version #{func_version}."
+  func_version = lambdaMgr.deploy_lambda(CONFIGURATION["lambda_s3_bucket"], CONFIGURATION["lambda_s3_key"],
+    s3_version_id, function_name, handler_name, CONFIGURATION["lambda_role_arn"], lambda_description,
+    CONFIGURATION["subnet_ids"], CONFIGURATION["security_groups"], "nodejs4.3", timeout, memory_size)
+   puts "Deployed #{function_name} to function version #{func_version}."
   return func_version
 
 end
